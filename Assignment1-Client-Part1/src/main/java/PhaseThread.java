@@ -13,6 +13,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class PhaseThread implements Runnable {
 
+
+
     private int startPurchaseIDs;
     private int endPurchaseIDs;
     private int startTime;
@@ -27,12 +29,13 @@ public class PhaseThread implements Runnable {
     private PurchaseApi apiInstance;
     private ThreadLocalRandom randomGenerator;
     private PerformanceEvaluator performanceEvaluator;
+    private Region region;
 
 //    private static final Logger logger = LogManager.getLogger();
 
     public PhaseThread(int startPurchaseIDs, int endPurchaseIDs, int startTime, int endTime, int numPost,
                        Configuration configuration, CountDownLatch currentLatch, CountDownLatch nextLatch,
-                       PerformanceEvaluator performanceEvaluator, int storeID, int custID, String date) {
+                       PerformanceEvaluator performanceEvaluator, int storeID, int custID, String date, Region region) {
         this.startPurchaseIDs = startPurchaseIDs;
         this.endPurchaseIDs = endPurchaseIDs;
         this.startTime = startTime;
@@ -45,7 +48,7 @@ public class PhaseThread implements Runnable {
         this.storeID = storeID;
         this.custID = custID;
         this.date = date;
-
+        this.region = region;
         this.apiInstance = new PurchaseApi();
         apiInstance.getApiClient().setBasePath(this.configuration.getBaseUrl());
         this.randomGenerator = ThreadLocalRandom.current();
@@ -56,10 +59,6 @@ public class PhaseThread implements Runnable {
         try {
 //            System.out.println("send post");
             doPost();
-            currentLatch.countDown();
-//            if (nextLatch != null) {
-//                nextLatch.countDown();
-//            }
         } catch (ApiException e) {
             e.printStackTrace();
         }
@@ -94,6 +93,13 @@ public class PhaseThread implements Runnable {
                     performanceEvaluator.getNumUnsuccessfulRequest().getAndIncrement();
 //                logger.info("Error occurred while communicating with the server: " + e.getMessage());
                 }
+            }
+            if (a==3 - 1 && this.region == Region.EAST) {
+                currentLatch.countDown();
+            }
+
+            if (a==5 - 1 && this.region == Region.EAST || this.region == Region.MIDDLE) {
+                nextLatch.countDown();
             }
 
         }
