@@ -42,42 +42,32 @@ public class MultiThreadClient {
             final int phaseEastEndTime = configuration.getNumPurchases() * 3;
             final int numPosts = configuration.getNumPurchases();
 //            System.out.println(numPosts);
-            final CountDownLatch phaseEastNext = new CountDownLatch(numThreads / 4);
-            final CountDownLatch phaseEastCountDown = new CountDownLatch(numThreads);
+            final CountDownLatch latchForMiddle = new CountDownLatch(1);
+            final CountDownLatch latchForWest = new CountDownLatch(1);
 
             // Phase 1, the east phase, will launch (maxStores/4) threads.
-
-            int PhaseEast = 0;
 
             Runnable runPhaseEast = new Runnable() {
                 @Override
                 public void run() {
                     try {
                         execute(numThreads, startPurchaseID, endPurchaseID, phaseEastStartTime, phaseEastEndTime,
-                                numPosts, configuration, phaseEastNext, phaseEastCountDown, performanceEvaluator,
-                                storeID, custID, date);
+                                numPosts, configuration, latchForMiddle, latchForWest, performanceEvaluator,
+                                storeID, custID, date, Region.EAST);
                     } catch(InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
             };
-
             long startTime = System.currentTimeMillis();
             System.out.println("Phase East started.");
             Thread phaseEast = new Thread(runPhaseEast);
             phaseEast.start();
+            latchForMiddle.await();
 
             final int phaseCentralStartTime = configuration.getNumPurchases() * 3 + 1;
             final int phaseCentralEndTime = configuration.getNumPurchases() * 5;
-            final CountDownLatch phaseCentralNext = new CountDownLatch(maxThreads / 10);
-            final CountDownLatch phaseCentralCountDown = new CountDownLatch(maxThreads / 4);
 
-
-            // Phase 2 After any store thread has sent 5 hours of purchases (numPurchasesx5),
-            // launch the remaining (maxStores/2) threads - the west phase.
-            while((performanceEvaluator.getNumSuccessfulRequest().get() + performanceEvaluator.getNumUnsuccessfulRequest().get()) < configuration.getNumPurchases() * 3 - 1) {
-//                System.out.println("while amount" + (performanceEvaluator.getNumSuccessfulRequest().get() + performanceEvaluator.getNumUnsuccessfulRequest().get()));
-            }
 
 //            System.out.println("amount" + (performanceEvaluator.getNumUnsuccessfulRequest().get() + performanceEvaluator.getNumUnsuccessfulRequest().get()));
 
@@ -86,8 +76,8 @@ public class MultiThreadClient {
                 public void run() {
                     try {
                         execute(numThreads, startPurchaseID, endPurchaseID, phaseCentralStartTime, phaseCentralEndTime,
-                                numPosts, configuration, phaseCentralNext, phaseCentralCountDown, performanceEvaluator,
-                                storeID, custID, date);
+                                numPosts, configuration, null, latchForMiddle, performanceEvaluator,
+                                storeID, custID, date, Region.MIDDLE);
                     } catch(InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -96,6 +86,7 @@ public class MultiThreadClient {
             System.out.println("Phase Central started.");
             Thread phaseCentral = new Thread(runPhaseCentral);
             phaseCentral.start();
+            latchForWest.await();
 //            phaseCentralNext.await();
 //            phaseEastNext.await();
 
@@ -104,18 +95,14 @@ public class MultiThreadClient {
             final CountDownLatch phaseWestCountDown = new CountDownLatch(maxThreads/2);
 
 
-            // After any store thread has sent 5 hours of purchases (numPurchasesx5), launch the remaining (maxStores/2) threads - the west phase.
-            while((performanceEvaluator.getNumSuccessfulRequest().get() + performanceEvaluator.getNumUnsuccessfulRequest().get()) < configuration.getNumPurchases() * 5 -1) {
-//                System.out.println("while amount" + (performanceEvaluator.getNumSuccessfulRequest().get() + performanceEvaluator.getNumUnsuccessfulRequest().get()));
-            }
 
             Runnable runPhaseWest = new Runnable() {
                 @Override
                 public void run() {
                     try {
                         execute(maxThreads/2, startPurchaseID, endPurchaseID, phaseWestStartTime, Integer.MAX_VALUE,
-                                numPosts, configuration, null, phaseWestCountDown, performanceEvaluator,
-                                storeID, custID, date);
+                                numPosts, configuration, null, null, performanceEvaluator,
+                                storeID, custID, date, Region.WEST);
                     } catch(InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -126,14 +113,13 @@ public class MultiThreadClient {
             Thread phaseWest = new Thread(runPhaseWest);
             phaseWest.start();
 
-
-            phaseEastCountDown.await();
+            phaseEast.join();
             System.out.println("East Phase completed.");
 
-            phaseCentralCountDown.await();
+            phaseCentral.join();
             System.out.println("Central Phase completed.");
 
-            phaseWestCountDown.await();
+            phaseWest.join();
             System.out.println("West Phase completed.");
 
             long endTime = System.currentTimeMillis();
@@ -142,7 +128,7 @@ public class MultiThreadClient {
             int numSuccessfulRequest = performanceEvaluator.getNumSuccessfulRequest().get();
             int numUnSuccessfulRequest = performanceEvaluator.getNumUnsuccessfulRequest().get();
             long wallTime = endTime - startTime;
-            long throughput = (long)totalRequest / (wallTime / 1000);
+            long throughput = (long)totalRequest * 1000 / wallTime ;
             long ratio = ((long)wallTime - (long) throughput) / (long) throughput;
 
             System.out.println();
@@ -161,11 +147,12 @@ public class MultiThreadClient {
     }
 
     public static void execute(int numThreads, int startPurchaseID, int endPurchaseID, int startTime, int endTime,
-                               int numPost, Configuration configuration, CountDownLatch next, CountDownLatch current,
-                               PerformanceEvaluator performanceEvaluator, int storeID, int custID, String date) throws InterruptedException {
+                               int numPost, Configuration configuration, CountDownLatch current, CountDownLatch next,
+                               PerformanceEvaluator performanceEvaluator, int storeID, int custID, String date, Region region) throws InterruptedException {
         int purchasePer = endPurchaseID / numThreads;
         int start = startPurchaseID;
         int end = purchasePer;
+        Thread [] threads = new Thread[numThreads];
         for (int i = 0; i < numThreads; i++) {
 //            System.out.println(i);
             if (i == numThreads - 1) {
@@ -173,13 +160,17 @@ public class MultiThreadClient {
             }
 //            System.out.println("numPost" + numPost);
             PhaseThread thread = new PhaseThread(startPurchaseID, endPurchaseID, startTime, endTime, numPost, configuration, current, next, performanceEvaluator,
-                    storeID, custID, date);
-            new Thread(thread).start();
+                    storeID, custID, date, region);
+            threads[i] = new Thread(thread);
+            threads[i].start();;
             start = end + 1;
             end += purchasePer;
         }
 //        System.out.println("Executes Successfully.");
 //        current.await();
+        for (int i = 0; i < numThreads; i++) {
+            threads[i].join();
+        }
 
     }
 }
