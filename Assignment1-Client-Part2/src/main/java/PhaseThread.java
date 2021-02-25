@@ -27,12 +27,11 @@ public class PhaseThread implements Runnable {
     private ThreadLocalRandom randomGenerator;
     private PerformanceEvaluator performanceEvaluator;
     private CSVWriter writer;
-
-//    private static final Logger logger = LogManager.getLogger();
+    private Region region;
 
     public PhaseThread(int startPurchaseIDs, int endPurchaseIDs, int startTime, int endTime, int numPost,
                        Configuration configuration, CountDownLatch currentLatch, CountDownLatch nextLatch,
-                       PerformanceEvaluator performanceEvaluator, CSVWriter writer, int storeID, int custID, String date) {
+                       PerformanceEvaluator performanceEvaluator, CSVWriter writer, int storeID, int custID, String date, Region region) {
         this.startPurchaseIDs = startPurchaseIDs;
         this.endPurchaseIDs = endPurchaseIDs;
         this.startTime = startTime;
@@ -46,7 +45,7 @@ public class PhaseThread implements Runnable {
         this.custID = custID;
         this.date = date;
         this.writer = writer;
-
+        this.region = region;
         this.apiInstance = new PurchaseApi();
         apiInstance.getApiClient().setBasePath(this.configuration.getBaseUrl());
         this.randomGenerator = ThreadLocalRandom.current();
@@ -55,12 +54,7 @@ public class PhaseThread implements Runnable {
     @Override
     public void run() {
         try {
-//            System.out.println("send post");
             doPost();
-            currentLatch.countDown();
-//            if (nextLatch != null) {
-//                nextLatch.countDown();
-//            }
         } catch (ApiException e) {
             e.printStackTrace();
         }
@@ -70,27 +64,26 @@ public class PhaseThread implements Runnable {
         Purchase purchase = new Purchase();
         PurchaseItems purchaseItems = new PurchaseItems();
         purchaseItems.setNumberOfItems(this.configuration.getNumItemPerPurchase());
-//        System.out.println("c1");
 
         int numOfItems = this.configuration.getNumItemPerPurchase();
         // every store runs for 9 hours per day
         for (int a = 0; a < 9; a++) {
             for (int i = 0; i < numPost; i++) {
                 for (int j = 0; j < numOfItems; j++) {
-
                     PurchaseItems currPurchaseItems = new PurchaseItems();
                     currPurchaseItems.setNumberOfItems(1);
+
                     String currItemID = this.randomValue(1, this.configuration.getMaxItemID());
                     currPurchaseItems.setItemID(currItemID);
+
                     purchase.addItemsItem(currPurchaseItems);
                 }
                 try {
                     long startTime = System.currentTimeMillis();
-//                    System.out.println("c2");
+
                     ApiResponse<Void> response = apiInstance.newPurchaseWithHttpInfo(purchase, this.storeID, this.custID, this.date);
                     long endTime = System.currentTimeMillis();
                     long[] curr = new long[2];
-//                    System.out.println("startTime" + startTime);
                     curr[0] = startTime;
                     curr[1] = endTime;
                     writer.timeList.add(curr);
@@ -100,6 +93,13 @@ public class PhaseThread implements Runnable {
                     performanceEvaluator.getNumUnsuccessfulRequest().getAndIncrement();
 //                logger.info("Error occurred while communicating with the server: " + e.getMessage());
                 }
+            }
+            if (a==3 - 1 && this.region == Region.EAST) {
+                currentLatch.countDown();
+            }
+
+            if (a==5 - 1 && this.region == Region.EAST || this.region == Region.MIDDLE) {
+                nextLatch.countDown();
             }
 
         }
