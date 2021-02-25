@@ -173,6 +173,5 @@ public class MultiThreadClient {
         for (int i = 0; i < numThreads; i++) {
             threads[i].join();
         }
-
     }
 }

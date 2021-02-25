@@ -85,9 +85,9 @@ public class PhaseThread implements Runnable {
                 }
 
                 try {
-                    long startTime = System.currentTimeMillis();
+//                    long startTime = System.currentTimeMillis();
                     ApiResponse<Void> response = apiInstance.newPurchaseWithHttpInfo(purchase, this.storeID, this.custID, this.date);
-                    long endTime = System.currentTimeMillis();
+//                    long endTime = System.currentTimeMillis();
                     performanceEvaluator.getNumSuccessfulRequest().getAndIncrement();
                 } catch (ApiException e) {
                     performanceEvaluator.getNumUnsuccessfulRequest().getAndIncrement();
