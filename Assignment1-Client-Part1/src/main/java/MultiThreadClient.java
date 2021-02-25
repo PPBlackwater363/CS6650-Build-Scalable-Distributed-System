@@ -34,10 +34,12 @@ public class MultiThreadClient {
             final Configuration configuration = Configuration.readFromProperties("configuration.properties");
             final PerformanceEvaluator performanceEvaluator = new PerformanceEvaluator(new AtomicInteger(0), new AtomicInteger(0));
 
-            final int maxThreads = configuration.getMaxStores();
-            final int numThreads = configuration.getMaxStores() / 4;
+//            final int maxThreads = configuration.getMaxStores();
+            // get the total number of threads
+            final int maxThreads = Integer.parseInt(args[0]);
+            final int numThreads = maxThreads  / 4;
             final int startPurchaseID = 1;
-            final int endPurchaseID = configuration.getMaxStores();
+            final int endPurchaseID = maxThreads;
             final int phaseEastStartTime = 1;
             final int phaseEastEndTime = configuration.getNumPurchases() * 3;
             final int numPosts = configuration.getNumPurchases();
