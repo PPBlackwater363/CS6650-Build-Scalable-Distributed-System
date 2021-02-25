@@ -12,7 +12,7 @@ public class PurchaseServlet extends javax.servlet.http.HttpServlet {
 
     protected void doPost(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response) throws javax.servlet.ServletException, IOException {
 
-        System.out.println(request.getPathInfo());
+//        System.out.println(request.getPathInfo());
 
         response.setContentType("application/json");
         response.setCharacterEncoding("utf-8");
@@ -21,7 +21,7 @@ public class PurchaseServlet extends javax.servlet.http.HttpServlet {
         JSONObject res;
 
         if (urlPath == null || urlPath.isEmpty()) {
-            System.out.println("url problem");
+//            System.out.println("url problem");
             res = new JSONObject("{\"message\": \"Missing Parameters.\"}");
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             response.getWriter().println(res);
@@ -30,9 +30,9 @@ public class PurchaseServlet extends javax.servlet.http.HttpServlet {
         String[] urlParts = urlPath.split("/");
 
         if (!isPostUrlValid(urlParts)) {
-            System.out.println("not valid url");
+//            System.out.println("not valid url");
             res = new JSONObject("{\"message\": \"Data not found.\"}");
-            System.out.println("Read Failed");
+//            System.out.println("Read Failed");
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             response.getWriter().println(res);
         } else {
@@ -47,19 +47,19 @@ public class PurchaseServlet extends javax.servlet.http.HttpServlet {
             }
             try {
                 JSONObject jsonObject = new JSONObject(jb.toString());
-                System.out.println(jb.toString());
+//                System.out.println(jb.toString());
 //                System.out.println(jsonObject.get("items"));
 //                JSONObject itemsJsonObject = new JSONObject(jsonObject.get("items"));
 
                 if (!jsonObject.has("items") || jsonObject.isNull("items")) {
-                    System.out.println("no items");
-                    System.out.println("Write Failed");
+//                    System.out.println("no items");
+//                    System.out.println("Write Failed");
                     res = new JSONObject("{\"message\": \"Invalid inputs.\"}");
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     response.getWriter().println(res);
                 }
                 else {
-                    System.out.println("Success");
+//                    System.out.println("Success");
                     res = new JSONObject("{\"message\": \"Write successful.\"}");
                     response.setStatus(HttpServletResponse.SC_CREATED);
                     response.getWriter().println(res);
