@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Assignment3-RabbitMQ">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../Assignment3-RabbitMQ/out/artifacts/Assignment3_RabbitMQ_jar/Assignment3-RabbitMQ.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
