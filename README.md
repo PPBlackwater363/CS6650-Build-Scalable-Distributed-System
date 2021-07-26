@@ -1,1 +1,1 @@
-# CS6650-BSDS
+# CS6650-Build Scalable Distributed System
